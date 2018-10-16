@@ -87,11 +87,11 @@ class TestCookieSetup(object):
         expected_dirs = [
             'data',
             'data/external',
-            'data/interim',
+            'data/interm',
             'data/processed',
             'data/raw',
             'docs',
-            'models',
+            'experiments',
             'notebooks',
             'references',
             'reports',
@@ -99,7 +99,7 @@ class TestCookieSetup(object):
             'src',
             'src/data',
             'src/features',
-            'src/models',
+            'src/experiments',
             'src/visualization',
         ]
 

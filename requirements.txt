@@ -1,4 +1,9 @@
-mkdocs
-mkdocs-cinder
 cookiecutter
 pytest
+jupyter
+matplotlib
+numpy
+click
+pandas
+scikit-learn
+graphviz

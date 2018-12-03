@@ -1,86 +1,116 @@
-.PHONY: clean data lint requirements sync_data_to_s3 sync_data_from_s3
 
 #################################################################################
 # GLOBALS                                                                       #
 #################################################################################
 
 PROJECT_DIR := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
-BUCKET = {{ cookiecutter.s3_bucket }}
-PROFILE = {{ cookiecutter.aws_profile }}
+
 PROJECT_NAME = {{ cookiecutter.repo_name }}
 PYTHON_INTERPRETER = {{ cookiecutter.python_interpreter }}
 
-ifeq (,$(shell which conda))
-HAS_CONDA=False
-else
-HAS_CONDA=True
-endif
+PROFILE = {{ cookiecutter.aws_profile }}
+AWS_KEY = {{ cookiecutter.aws_key }} 
+AWS_HOST = {{ cookiecutter.aws_host }}
+S3_BUCKET = {{ cookiecutter.s3_bucket }}
+
 
 #################################################################################
-# COMMANDS                                                                      #
+# ENVIRONMENT                                                                   #
 #################################################################################
 
-## Install Python Dependencies
-requirements: test_environment
-	pip install -U pip setuptools wheel
-	pip install -r requirements.txt
+pyenv:
+	curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
+	cat helpers/to_bashrc_by_pyenv.txt >>  ~/.bashrc
+	# Use `source ~/.bashrc` command
 
-## Make Dataset
-data: requirements
-	$(PYTHON_INTERPRETER) src/data/make_dataset.py
+python:
+	sudo apt-get update
+	sudo apt-get upgrade
+	sudo apt-get dist-upgrade
+	sudo apt-get install build-essential python-dev python-setuptools python-pip python-smbus
+	sudo apt-get install libncursesw5-dev libgdbm-dev libc6-dev
+	sudo apt-get install zlib1g-dev libsqlite3-dev tk-dev
+	sudo apt-get install libssl-dev openssl
+	sudo apt-get install libffi-dev
+	env PYTHON_CONFIGURE_OPTS="--enable-shared" pyenv install 3.7.0
 
-## Delete all compiled Python files
-clean:
-	find . -type f -name "*.py[co]" -delete
-	find . -type d -name "__pycache__" -delete
+venv:
+	pyenv virtualenv 3.7.0 $(PROJECT_NAME)
+	#
+	# Virtualenv $(PROJECT_NAME) ready, run following to activate
+	# pyenv activate $(PROJECT_NAME)
 
-## Lint using flake8
-lint:
-	flake8 src
+
+requirements:
+	# for fasttext it is necessary to install Cython, h5py first
+	# some bug, it can't be installed automaticaly
+	pip install --upgrade  pip setuptools wheel; \
+	python setup.py develop
+
+	git clone https://github.com/seznam/flexp.git ~/src/flexp/ ; \
+	cd ~/src/flexp/ ; \
+	python setup.py develop
+
+	git clone https://github.com/tomasprinda/tputils.git ~/src/tputils/ ; \
+	cd ~/src/tputils/ ; \
+	python setup.py develop
+
+
+#################################################################################
+# DATA                                                                          #
+#################################################################################
+
+	
+
+
+#################################################################################
+# AWS                                                                           #
+#################################################################################
 
 ## Upload Data to S3
-sync_data_to_s3:
+data_to_s3:
 ifeq (default,$(PROFILE))
-	aws s3 sync data/ s3://$(BUCKET)/data/
+	aws s3 sync data/ s3://$(S3_BUCKET)/aukro_categories/data/
 else
-	aws s3 sync data/ s3://$(BUCKET)/data/ --profile $(PROFILE)
+	aws s3 sync data/ s3://$(S3_BUCKET)/aukro_categories/data/ --profile $(PROFILE)
 endif
 
 ## Download Data from S3
-sync_data_from_s3:
+data_from_s3:
 ifeq (default,$(PROFILE))
-	aws s3 sync s3://$(BUCKET)/data/ data/
+	aws s3 sync s3://$(S3_BUCKET)/$(PROJECT_NAME)/data/ data/
 else
-	aws s3 sync s3://$(BUCKET)/data/ data/ --profile $(PROFILE)
+	aws s3 sync s3://$(S3_BUCKET)/$(PROJECT_NAME)/data/ data/ --profile $(PROFILE)
 endif
 
-## Set up python interpreter environment
-create_environment:
-ifeq (True,$(HAS_CONDA))
-		@echo ">>> Detected conda, creating conda environment."
-ifeq (3,$(findstring 3,$(PYTHON_INTERPRETER)))
-	conda create --name $(PROJECT_NAME) python=3
-else
-	conda create --name $(PROJECT_NAME) python=2.7
-endif
-		@echo ">>> New conda env created. Activate with:\nsource activate $(PROJECT_NAME)"
-else
-	@pip install -q virtualenv virtualenvwrapper
-	@echo ">>> Installing virtualenvwrapper if not already intalled.\nMake sure the following lines are in shell startup file\n\
-	export WORKON_HOME=$$HOME/.virtualenvs\nexport PROJECT_HOME=$$HOME/Devel\nsource /usr/local/bin/virtualenvwrapper.sh\n"
-	@bash -c "source `which virtualenvwrapper.sh`;mkvirtualenv $(PROJECT_NAME) --python=$(PYTHON_INTERPRETER)"
-	@echo ">>> New virtualenv created. Activate with:\nworkon $(PROJECT_NAME)"
-endif
+ssh:
+	ssh -i $(AWS_KEY) -t ubuntu@$(AWS_HOST) "cd /home/ubuntu/src/$(PROJECT_NAME); bash"
 
-## Test python environment is setup correctly
-test_environment:
-	$(PYTHON_INTERPRETER) test_environment.py
+sshfs:
+	sshfs \
+    -o follow_symlinks \
+    -o transform_symlinks \
+    -o TCPKeepAlive=yes \
+    -o ServerAliveCountMax=2 \
+    -o ServerAliveInterval=5 \
+    -o IdentityFile=$(AWS_KEY) \
+    ubuntu@$(AWS_HOST):/home/ubuntu/  \
+    ~/einstein/
+
+sshfs_disconnect:
+	fusermount -u ~/einstein
+
 
 #################################################################################
-# PROJECT RULES                                                                 #
+# Run services                                                                  #
 #################################################################################
 
+run_jupyter:
+	jupyter notebook --port 8882 > /dev/null 2> /dev/null
 
+run_flexp:
+	cd ~/src/$(PROJECT_NAME)/experiments ; \
+    python browse.py --port 7772 > /dev/null 2> /dev/null
 
 #################################################################################
 # Self Documenting Commands                                                     #

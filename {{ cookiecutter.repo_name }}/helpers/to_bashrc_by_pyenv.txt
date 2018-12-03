@@ -1,0 +1,5 @@
+
+# Added by `make install_pyenv` from `helpers/to_bash_by_pyenv.txt`
+export PATH="$HOME/.pyenv/bin:$PATH"
+eval "$(pyenv init -)"
+eval "$(pyenv virtualenv-init -)"

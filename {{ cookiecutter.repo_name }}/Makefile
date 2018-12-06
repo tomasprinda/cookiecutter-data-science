@@ -67,21 +67,11 @@ requirements:
 # AWS                                                                           #
 #################################################################################
 
-## Upload Data to S3
 data_to_s3:
-ifeq (default,$(PROFILE))
-	aws s3 sync data/ s3://$(S3_BUCKET)/aukro_categories/data/
-else
 	aws s3 sync data/ s3://$(S3_BUCKET)/aukro_categories/data/ --profile $(PROFILE)
-endif
 
-## Download Data from S3
 data_from_s3:
-ifeq (default,$(PROFILE))
-	aws s3 sync s3://$(S3_BUCKET)/$(PROJECT_NAME)/data/ data/
-else
 	aws s3 sync s3://$(S3_BUCKET)/$(PROJECT_NAME)/data/ data/ --profile $(PROFILE)
-endif
 
 ssh:
 	ssh -i $(AWS_KEY) -t ubuntu@$(AWS_HOST) "cd /home/ubuntu/src/$(PROJECT_NAME); bash"

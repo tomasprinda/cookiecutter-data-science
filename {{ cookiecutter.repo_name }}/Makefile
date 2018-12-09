@@ -20,7 +20,7 @@ S3_BUCKET = {{ cookiecutter.s3_bucket }}
 
 pyenv:
 	curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
-	cat helpers/to_bashrc_by_pyenv.txt >>  ~/.bashrc
+	cat other/to_bashrc_by_pyenv.txt >>  ~/.bashrc
 	# Use `source ~/.bashrc` command
 
 python:
@@ -47,13 +47,8 @@ requirements:
 	pip install --upgrade  pip setuptools wheel; \
 	python setup.py develop
 
-	git clone https://github.com/seznam/flexp.git ~/src/flexp/ ; \
-	cd ~/src/flexp/ ; \
-	python setup.py develop
-
-	git clone https://github.com/tomasprinda/tputils.git ~/src/tputils/ ; \
-	cd ~/src/tputils/ ; \
-	python setup.py develop
+	./other/git_clone_or_pull.sh https://github.com/seznam/flexp.git ~/src/flexp/
+	./other/git_clone_or_pull.sh https://github.com/tomasprinda/tputils.git ~/src/tputils/
 
 
 #################################################################################
